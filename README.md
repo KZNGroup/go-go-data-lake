@@ -1,8 +1,9 @@
-# Welcome to your CDK TypeScript project
+# go-go-data-lake
+## A serverless Data Lake using Golang
 
-This is a blank project for TypeScript development with CDK.
+This is a Typescript CDK application that deploys a serverless data lake to AWS.
+All data extractions and transformations in this repo use Go(lang) as the language of choice.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
 ## Useful commands
 
