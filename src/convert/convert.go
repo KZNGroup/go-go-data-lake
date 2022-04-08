@@ -14,15 +14,19 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
+// Environment Variables
+var region string = os.Getenv("AWS_REGION")
+
 func main() {
 	lambda.Start(handler)
 }
 
 func handler(ctx context.Context, s3Event events.S3Event) {
+
 	for _, record := range s3Event.Records {
 		s3 := record.S3
-		// TODO: use channels to make concurrent
-		readS3(s3.Bucket.Name, s3.Object.Key)
+		content := readS3(s3.Bucket.Name, s3.Object.Key)
+		fmt.Fprint(os.Stdout, content)
 	}
 }
 
@@ -38,7 +42,7 @@ func readS3(bucket string, key string) string {
 
 	//replace with your bucket region
 	sess, _ := session.NewSession(&aws.Config{
-		Region: aws.String("ap-southeast-2")},
+		Region: aws.String(region)},
 	)
 
 	downloader := s3manager.NewDownloader(sess)
@@ -59,11 +63,9 @@ func readS3(bucket string, key string) string {
 	}
 
 	return string(dat)
-
 }
 
 func raise(err error) {
-	//fmt.Fprintf(os.Stdout, "%v\n", msg)
 	fmt.Fprintf(os.Stderr, "%v\n", err.Error())
 	os.Exit(1)
 }
