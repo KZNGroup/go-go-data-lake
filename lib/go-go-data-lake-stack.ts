@@ -1,7 +1,9 @@
 import { Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
+import { GoLambda } from '../go_constructs/go-lambda';
+import * as path from 'path';
 
 export class GoGoDataLakeStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -14,16 +16,24 @@ export class GoGoDataLakeStack extends Stack {
       publicReadAccess: false
     });
 
-    const convertLambda = new lambda.Function(this, 'go-convert', {
-      code: lambda.Code.fromAsset('src/convert'),
-      handler: 'convert.main',
-      runtime: lambda.Runtime.GO_1_X,
-      memorySize: 512,
-      timeout: Duration.minutes(2),
-      architecture: lambda.Architecture.X86_64 // ARM64 is not compatible with GO
+    const convertLambda = new GoLambda(this, 'convert-lambda', {
+      sourceFolder: path.join(__dirname, '../src/convert'),
+      memorySize: 128,
+      timeout: Duration.minutes(1)
     });
 
-    bucket.grantRead(convertLambda, 'landing');
-    bucket.grantWrite(convertLambda, 'curated');
+    bucket.grantRead(convertLambda, 'landing/*');
+    bucket.grantWrite(convertLambda, 'curated/*');
+
+    /*
+    bucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3n.LambdaDestination(convertLambda),
+      s3.NotificationKeyFilter(
+        prefix="the/place",
+        suffix="*.mp3",
+    ),
+    );
+    */
   }
 }
