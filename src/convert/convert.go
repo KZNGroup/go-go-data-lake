@@ -29,7 +29,7 @@ func handler(ctx context.Context, s3Event events.S3Event) {
 func readS3(bucket string, key string) string {
 	//the only writable directory in the lambda is /tmp
 	fmt.Fprintf(os.Stdout, "Processing %v/%v\n", bucket, key)
-	file, err := os.Create("/tmp/" + key)
+	file, err := os.Create("/tmp/file.csv")
 	if err != nil {
 		raise(err)
 	}
