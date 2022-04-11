@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"encoding/csv"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"log"
 	"os"
+	"strconv"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -12,27 +16,74 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/xitongsys/parquet-go-source/local"
+	"github.com/xitongsys/parquet-go/parquet"
+	"github.com/xitongsys/parquet-go/writer"
 )
 
 // Environment Variables
 var region string = os.Getenv("AWS_REGION")
+var awsSession *session.Session = buildSession()
+
+func buildSession() *session.Session {
+	sesh, err := session.NewSession(&aws.Config{
+		Region: aws.String(region)},
+	)
+	if err != nil {
+		raise(err)
+	}
+
+	log.Println("Generated AWS session")
+	return sesh
+}
 
 func main() {
 	lambda.Start(handler)
 }
 
 func handler(ctx context.Context, s3Event events.S3Event) {
-
 	for _, record := range s3Event.Records {
 		s3 := record.S3
-		content := readS3(s3.Bucket.Name, s3.Object.Key)
-		fmt.Fprint(os.Stdout, content)
+		bucket := s3.Bucket.Name
+		key := s3.Object.Key
+
+		localPath := downloadS3(bucket, key)
+		localPath = csv2parquet(localPath)
+
+		uploadS3(&Upload{
+			localPath: localPath,
+			bucket:    bucket,
+			key:       "curated/russia.parquet",
+		})
+
+		fmt.Fprint(os.Stdout, localPath)
 	}
 }
 
-func readS3(bucket string, key string) string {
-	//the only writable directory in the lambda is /tmp
-	fmt.Fprintf(os.Stdout, "Processing %v/%v\n", bucket, key)
+func uploadS3(data *Upload) {
+	log.Println("Beginning data upload")
+	// Open the file for reading
+	file, err := os.Open(data.localPath)
+	if err != nil {
+		raise(err)
+	}
+
+	log.Println("1")
+	uploader := s3manager.NewUploader(awsSession)
+	log.Println("2")
+	_, err = uploader.Upload(&s3manager.UploadInput{
+		Bucket: &data.bucket,
+		Key:    &data.key,
+		Body:   file,
+	})
+	if err != nil {
+		raise(err)
+	}
+
+	log.Printf("%v uploaded to %v", data.localPath, data.key)
+}
+
+func downloadS3(bucket string, key string) string {
 	file, err := os.Create("/tmp/file.csv")
 	if err != nil {
 		raise(err)
@@ -40,12 +91,7 @@ func readS3(bucket string, key string) string {
 
 	defer file.Close()
 
-	//replace with your bucket region
-	sess, _ := session.NewSession(&aws.Config{
-		Region: aws.String(region)},
-	)
-
-	downloader := s3manager.NewDownloader(sess)
+	downloader := s3manager.NewDownloader(awsSession)
 
 	_, err = downloader.Download(file,
 		&s3.GetObjectInput{
@@ -56,13 +102,105 @@ func readS3(bucket string, key string) string {
 		raise(err)
 	}
 
-	dat, err := ioutil.ReadFile(file.Name())
+	log.Printf("%v downloaded to %v", key, file.Name())
+	return file.Name()
+}
 
+type Upload struct {
+	localPath string
+	bucket    string
+	key       string
+}
+
+type Row struct {
+	//date          string `parquet:"name=date, type=INT32, convertedtype=DATE"`
+	day           int32 `parquet:"name=day, type=INT32, convertedtype=INT_32"`
+	aircraft      int32 `parquet:"name=aircraft, type=INT32, convertedtype=INT_32"`
+	helicopter    int32 `parquet:"name=helicopter, type=INT32, convertedtype=INT_32"`
+	tank          int32 `parquet:"name=tank, type=INT32, convertedtype=INT_32"`
+	apc           int32 `parquet:"name=apc, type=INT32, convertedtype=INT_32"`
+	artillery     int32 `parquet:"name=artillery, type=INT32, convertedtype=INT_32"`
+	mrl           int32 `parquet:"name=mrl, type=INT32, convertedtype=INT_32"`
+	military_auto int32 `parquet:"name=military_auto, type=INT32, convertedtype=INT_32"`
+	fuel_tank     int32 `parquet:"name=fuel_tank, type=INT32, convertedtype=INT_32"`
+	drone         int32 `parquet:"name=drone, type=INT32, convertedtype=INT_32"`
+	ship          int32 `parquet:"name=ship, type=INT32, convertedtype=INT_32"`
+	anti_aircraft int32 `parquet:"name=anti_aircraft, type=INT32, convertedtype=INT_32"`
+}
+
+func csv2parquet(localPath string) string {
+	var err error
+	outputPath := "/tmp/latest.parquet"
+
+	fw, err := local.NewLocalFileWriter(outputPath)
 	if err != nil {
 		raise(err)
 	}
 
-	return string(dat)
+	writer, err := writer.NewParquetWriter(fw, new(Row), 2)
+	if err != nil {
+		raise(err)
+	}
+
+	writer.RowGroupSize = 128 * 1024 * 1024 //128M
+	writer.CompressionType = parquet.CompressionCodec_SNAPPY
+
+	csvFile, _ := os.Open(localPath)
+	reader := csv.NewReader(bufio.NewReader(csvFile))
+	header := true
+
+	for {
+		line, err := reader.Read()
+
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			raise(err)
+		} else if header {
+			header = false
+			continue
+		}
+
+		row := Row{
+			//date:          line[0],
+			day:           parseInt32(line[1]),
+			aircraft:      parseInt32(line[2]),
+			helicopter:    parseInt32(line[3]),
+			tank:          parseInt32(line[4]),
+			apc:           parseInt32(line[5]),
+			artillery:     parseInt32(line[6]),
+			mrl:           parseInt32(line[7]),
+			military_auto: parseInt32(line[8]),
+			fuel_tank:     parseInt32(line[9]),
+			drone:         parseInt32(line[10]),
+			ship:          parseInt32(line[11]),
+			anti_aircraft: parseInt32(line[12]),
+		}
+		err = writer.Write(row)
+		if err != nil {
+			raise(err)
+		}
+	}
+	log.Println("All rows processed.")
+
+	err = writer.WriteStop()
+	if err != nil {
+		raise(err)
+	}
+
+	fw.Close()
+	log.Printf("File written to %v", localPath)
+
+	return outputPath
+}
+
+func parseInt32(input string) int32 {
+	day, err := strconv.ParseInt(input, 10, 32)
+	if err != nil {
+		raise(err)
+	}
+
+	return int32(day)
 }
 
 func raise(err error) {

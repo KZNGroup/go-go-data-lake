@@ -20,9 +20,6 @@ export class GoGoDataLakeStack extends Stack {
       sourceFolder: path.join(__dirname, '../src/convert'),
       memorySize: 256,
       timeout: Duration.minutes(1),
-      environment: {
-        REGION: 'ap'
-      }
     });
 
     bucket.grantRead(convertLambda, 'landing/*');
