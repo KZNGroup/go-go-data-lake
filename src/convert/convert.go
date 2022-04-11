@@ -8,7 +8,8 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
+
+	helper "kzn"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -23,88 +24,8 @@ import (
 
 // Environment Variables
 var region string = os.Getenv("AWS_REGION")
-var awsSession *session.Session = buildSession()
 
-func buildSession() *session.Session {
-	sesh, err := session.NewSession(&aws.Config{
-		Region: aws.String(region)},
-	)
-	if err != nil {
-		raise(err)
-	}
-
-	log.Println("Generated AWS session")
-	return sesh
-}
-
-func main() {
-	lambda.Start(handler)
-}
-
-func handler(ctx context.Context, s3Event events.S3Event) {
-	for _, record := range s3Event.Records {
-		s3 := record.S3
-		bucket := s3.Bucket.Name
-		key := s3.Object.Key
-
-		localPath := downloadS3(bucket, key)
-		localPath = csv2parquet(localPath)
-
-		uploadS3(&Upload{
-			localPath: localPath,
-			bucket:    bucket,
-			key:       "curated/russia.parquet",
-		})
-
-		fmt.Fprint(os.Stdout, localPath)
-	}
-}
-
-func uploadS3(data *Upload) {
-	log.Println("Beginning data upload")
-	// Open the file for reading
-	file, err := os.Open(data.localPath)
-	if err != nil {
-		raise(err)
-	}
-
-	log.Println("1")
-	uploader := s3manager.NewUploader(awsSession)
-	log.Println("2")
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: &data.bucket,
-		Key:    &data.key,
-		Body:   file,
-	})
-	if err != nil {
-		raise(err)
-	}
-
-	log.Printf("%v uploaded to %v", data.localPath, data.key)
-}
-
-func downloadS3(bucket string, key string) string {
-	file, err := os.Create("/tmp/file.csv")
-	if err != nil {
-		raise(err)
-	}
-
-	defer file.Close()
-
-	downloader := s3manager.NewDownloader(awsSession)
-
-	_, err = downloader.Download(file,
-		&s3.GetObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-		})
-	if err != nil {
-		raise(err)
-	}
-
-	log.Printf("%v downloaded to %v", key, file.Name())
-	return file.Name()
-}
+const CuratedPath = "curated"
 
 type Upload struct {
 	localPath string
@@ -113,7 +34,6 @@ type Upload struct {
 }
 
 type Row struct {
-	//date          string `parquet:"name=date, type=INT32, convertedtype=DATE"`
 	day           int32 `parquet:"name=day, type=INT32, convertedtype=INT_32"`
 	aircraft      int32 `parquet:"name=aircraft, type=INT32, convertedtype=INT_32"`
 	helicopter    int32 `parquet:"name=helicopter, type=INT32, convertedtype=INT_32"`
@@ -128,18 +48,97 @@ type Row struct {
 	anti_aircraft int32 `parquet:"name=anti_aircraft, type=INT32, convertedtype=INT_32"`
 }
 
+var awsSession *session.Session = helper.BuildSession(region)
+
+func main() {
+	lambda.Start(handler)
+}
+
+func handler(ctx context.Context, s3Event events.S3Event) {
+	for _, record := range s3Event.Records {
+		s3 := record.S3
+		bucket := s3.Bucket.Name
+		key := s3.Object.Key
+
+		localPath := downloadS3(bucket, key)
+		localPath = csv2parquet(localPath)
+
+		outputKey := fmt.Sprintf(
+			"%v%v%v%v.parquet",
+			CuratedPath,
+			helper.GetZonePath(key),
+			helper.GetDatePartition(),
+			helper.GetFileName(key),
+		)
+		log.Printf("Uploading to: %v\n", outputKey)
+
+		uploadS3(&Upload{
+			localPath: localPath,
+			bucket:    bucket,
+			key:       outputKey,
+		})
+
+		fmt.Fprint(os.Stdout, localPath)
+	}
+}
+
+func uploadS3(data *Upload) {
+	log.Println("Beginning data upload")
+	// Open the file for reading
+	file, err := os.Open(data.localPath)
+	if err != nil {
+		helper.Raise(err)
+	}
+
+	uploader := s3manager.NewUploader(awsSession)
+
+	_, err = uploader.Upload(&s3manager.UploadInput{
+		Bucket: &data.bucket,
+		Key:    &data.key,
+		Body:   file,
+	})
+	if err != nil {
+		helper.Raise(err)
+	}
+
+	log.Printf("%v uploaded to %v", data.localPath, data.key)
+}
+
+func downloadS3(bucket string, key string) string {
+	file, err := os.Create("/tmp/file.csv")
+	if err != nil {
+		helper.Raise(err)
+	}
+
+	defer file.Close()
+
+	downloader := s3manager.NewDownloader(awsSession)
+
+	_, err = downloader.Download(file,
+		&s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+	if err != nil {
+		helper.Raise(err)
+	}
+
+	log.Printf("%v downloaded to %v", key, file.Name())
+	return file.Name()
+}
+
 func csv2parquet(localPath string) string {
 	var err error
 	outputPath := "/tmp/latest.parquet"
 
 	fw, err := local.NewLocalFileWriter(outputPath)
 	if err != nil {
-		raise(err)
+		helper.Raise(err)
 	}
 
 	writer, err := writer.NewParquetWriter(fw, new(Row), 2)
 	if err != nil {
-		raise(err)
+		helper.Raise(err)
 	}
 
 	writer.RowGroupSize = 128 * 1024 * 1024 //128M
@@ -155,55 +154,49 @@ func csv2parquet(localPath string) string {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			raise(err)
+			helper.Raise(err)
 		} else if header {
 			header = false
 			continue
 		}
+		/*
+					Get each field in a struct
+					var reply interface{} = Point{1, 2}
+					t := reflect.TypeOf(reply)
+					for i := 0; i < t.NumField(); i++ {
+			    		fmt.Printf("%+v\n", t.Field(i))
+					}
+
+		*/
 
 		row := Row{
-			//date:          line[0],
-			day:           parseInt32(line[1]),
-			aircraft:      parseInt32(line[2]),
-			helicopter:    parseInt32(line[3]),
-			tank:          parseInt32(line[4]),
-			apc:           parseInt32(line[5]),
-			artillery:     parseInt32(line[6]),
-			mrl:           parseInt32(line[7]),
-			military_auto: parseInt32(line[8]),
-			fuel_tank:     parseInt32(line[9]),
-			drone:         parseInt32(line[10]),
-			ship:          parseInt32(line[11]),
-			anti_aircraft: parseInt32(line[12]),
+			day:           helper.ParseInt32(line[0]),
+			aircraft:      helper.ParseInt32(line[1]),
+			helicopter:    helper.ParseInt32(line[2]),
+			tank:          helper.ParseInt32(line[3]),
+			apc:           helper.ParseInt32(line[4]),
+			artillery:     helper.ParseInt32(line[5]),
+			mrl:           helper.ParseInt32(line[6]),
+			military_auto: helper.ParseInt32(line[7]),
+			fuel_tank:     helper.ParseInt32(line[8]),
+			drone:         helper.ParseInt32(line[9]),
+			ship:          helper.ParseInt32(line[10]),
+			anti_aircraft: helper.ParseInt32(line[11]),
 		}
 		err = writer.Write(row)
 		if err != nil {
-			raise(err)
+			helper.Raise(err)
 		}
 	}
 	log.Println("All rows processed.")
 
 	err = writer.WriteStop()
 	if err != nil {
-		raise(err)
+		helper.Raise(err)
 	}
 
 	fw.Close()
 	log.Printf("File written to %v", localPath)
 
 	return outputPath
-}
-
-func parseInt32(input string) int32 {
-	day, err := strconv.ParseInt(input, 10, 32)
-	if err != nil {
-		raise(err)
-	}
-
-	return int32(day)
-}
-
-func raise(err error) {
-	fmt.Fprintf(os.Stderr, "%v\n", err.Error())
-	os.Exit(1)
 }

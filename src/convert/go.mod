@@ -1,4 +1,4 @@
-module github.com/KZNGroup/go-go-data-lake
+module github.com/KZNGroup/go-go-data-lake/convert
 
 require kzn v1.0.0
 replace kzn v1.0.0 => ./kzn

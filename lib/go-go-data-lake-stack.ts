@@ -1,9 +1,11 @@
 import { Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as dynamo from 'aws-cdk-lib/aws-dynamodb';
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 import { GoLambda } from '../go_constructs/go-lambda';
 import * as path from 'path';
+import { AttributeType } from 'aws-cdk-lib/aws-dynamodb';
 
 export class GoGoDataLakeStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -15,6 +17,16 @@ export class GoGoDataLakeStack extends Stack {
       enforceSSL: true,
       publicReadAccess: false
     });
+
+    const database = new dynamo.Table(this, 'go-data-lake', {
+      partitionKey: {
+        name: "day",
+        type: dynamo.AttributeType.NUMBER
+      },
+      encryption: dynamo.TableEncryption.AWS_MANAGED,
+      readCapacity: 1,
+      writeCapacity: 1,
+    })
 
     const convertLambda = new GoLambda(this, 'convert-lambda', {
       sourceFolder: path.join(__dirname, '../src/convert'),
@@ -35,5 +47,11 @@ export class GoGoDataLakeStack extends Stack {
     ),
     );
     */
+
+    const dynamoLambda = new GoLambda(this, 'dynamo-lambda', {
+      sourceFolder: path.join(__dirname, '../src/dynamo'),
+      memorySize: 256,
+      timeout: Duration.minutes(1)
+    });
   }
 }

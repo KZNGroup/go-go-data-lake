@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -35,6 +36,11 @@ func ParseInt32(input string) int32 {
 func Raise(err error) {
 	fmt.Fprintf(os.Stderr, "%v\n", err.Error())
 	os.Exit(1)
+}
+
+func GetDatePartition() string {
+	now := time.Now()
+	return now.Format("2006/01/02/")
 }
 
 func GetZonePath(path string) string {
