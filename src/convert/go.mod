@@ -1,11 +1,13 @@
 module github.com/KZNGroup/go-go-data-lake/convert
 
 require kzn v1.0.0
+
 replace kzn v1.0.0 => ./kzn
 
 go 1.18
 
 require (
+	github.com/aiden-sobey/parquet-go v1.6.6
 	github.com/aws/aws-lambda-go v1.29.0
 	github.com/aws/aws-sdk-go v1.43.36
 	github.com/xitongsys/parquet-go v1.6.2

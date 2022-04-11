@@ -48,10 +48,12 @@ export class GoGoDataLakeStack extends Stack {
     );
     */
 
+    /*
     const dynamoLambda = new GoLambda(this, 'dynamo-lambda', {
       sourceFolder: path.join(__dirname, '../src/dynamo'),
       memorySize: 256,
       timeout: Duration.minutes(1)
     });
+    */
   }
 }
