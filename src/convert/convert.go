@@ -11,7 +11,6 @@ import (
 
 	helper "kzn"
 
-	"github.com/aiden-sobey/parquet-go/writer"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
@@ -20,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/parquet"
+	"github.com/xitongsys/parquet-go/writer"
 )
 
 // Environment Variables
@@ -46,6 +46,28 @@ type Row struct {
 	Drone         int32 `parquet:"name=drone, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
 	Ship          int32 `parquet:"name=ship, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
 	Anti_aircraft int32 `parquet:"name=anti_aircraft, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+}
+
+func addLine(w writer.ParquetWriter, schema Row, line []string) {
+	row := Row{
+		Day:           helper.ParseInt32(line[0]),
+		Aircraft:      helper.ParseInt32(line[1]),
+		Helicopter:    helper.ParseInt32(line[2]),
+		Tank:          helper.ParseInt32(line[3]),
+		Apc:           helper.ParseInt32(line[4]),
+		Artillery:     helper.ParseInt32(line[5]),
+		Mrl:           helper.ParseInt32(line[6]),
+		Military_auto: helper.ParseInt32(line[7]),
+		Fuel_tank:     helper.ParseInt32(line[8]),
+		Drone:         helper.ParseInt32(line[9]),
+		Ship:          helper.ParseInt32(line[10]),
+		Anti_aircraft: helper.ParseInt32(line[11]),
+	}
+
+	err := w.Write(&row)
+	if err != nil {
+		helper.Raise(err)
+	}
 }
 
 var awsSession *session.Session = helper.BuildSession(region)
@@ -141,8 +163,6 @@ func csv2parquet(localPath string) string {
 		helper.Raise(err)
 	}
 
-	// TODO: Pretty sure I can remove
-	writer.RowGroupSize = 128 * 1024 * 1024 //128M
 	writer.CompressionType = parquet.CompressionCodec_SNAPPY
 
 	csvFile, _ := os.Open(localPath)
@@ -159,54 +179,8 @@ func csv2parquet(localPath string) string {
 		} else if header {
 			header = false
 			continue
-		}
-		/*
-						Get each field in a struct
-						var reply interface{} = Point{1, 2}
-						t := reflect.TypeOf(reply)
-						for i := 0; i < t.NumField(); i++ {
-							fmt.Printf("%+v\n", t.Field(i))
-						}
-
-						Update the tag of a struct field
-						func (u *User) MarshalJSON() ([]byte, error) {
-						value := reflect.ValueOf(*u)
-						t := value.Type()
-						sf := make([]reflect.StructField, 0)
-						for i := 0; i < t.NumField(); i++ {
-							fmt.Println(t.Field(i).Tag)
-							sf = append(sf, t.Field(i))
-							if t.Field(i).Name == "Name" {
-								sf[i].Tag = `json:"name"`
-							}
-						}
-						newType := reflect.StructOf(sf)
-						newValue := value.Convert(newType)
-						return json.Marshal(newValue.Interface())
-			}
-
-		*/
-
-		value := helper.ParseInt32(line[0])
-		fmt.Printf("Value parsed: %v.", value)
-
-		row := Row{
-			Day:           helper.ParseInt32(line[0]),
-			Aircraft:      helper.ParseInt32(line[1]),
-			Helicopter:    helper.ParseInt32(line[2]),
-			Tank:          helper.ParseInt32(line[3]),
-			Apc:           helper.ParseInt32(line[4]),
-			Artillery:     helper.ParseInt32(line[5]),
-			Mrl:           helper.ParseInt32(line[6]),
-			Military_auto: helper.ParseInt32(line[7]),
-			Fuel_tank:     helper.ParseInt32(line[8]),
-			Drone:         helper.ParseInt32(line[9]),
-			Ship:          helper.ParseInt32(line[10]),
-			Anti_aircraft: helper.ParseInt32(line[11]),
-		}
-		err = writer.Write(row)
-		if err != nil {
-			helper.Raise(err)
+		} else {
+			addLine(*writer, Row{}, line)
 		}
 	}
 	log.Println("All rows processed.")
