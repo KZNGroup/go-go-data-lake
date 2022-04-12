@@ -19,9 +19,18 @@ import (
 )
 
 type Row struct {
-	Name  string `parquet:"name=name, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN"`
-	Age   int32  `parquet:"name=age, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	Level int32  `parquet:"name=level, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Day           int32 `parquet:"name=day, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Aircraft      int32 `parquet:"name=aircraft, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Helicopter    int32 `parquet:"name=helicopter, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Tank          int32 `parquet:"name=tank, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Apc           int32 `parquet:"name=apc, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Artillery     int32 `parquet:"name=artillery, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Mrl           int32 `parquet:"name=mrl, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Military_auto int32 `parquet:"name=military_auto, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Fuel_tank     int32 `parquet:"name=fuel_tank, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Drone         int32 `parquet:"name=drone, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Ship          int32 `parquet:"name=ship, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Anti_aircraft int32 `parquet:"name=anti_aircraft, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
 }
 
 var region string = os.Getenv("AWS_REGION")
@@ -57,18 +66,26 @@ func readParquet(bucket string, key string) []Row {
 		Raise(err)
 	}
 
-	pq, err := reader.NewParquetReader(fr, Row{}, 1)
+	log.Println("Instantiating parquet reader")
+	pq, err := reader.NewParquetReader(fr, new(Row), 1)
 	if err != nil {
 		Raise(err)
 	}
 
-	err = pq.Read(Row{})
+	rowCount := int(pq.GetNumRows())
+	rows := make([]Row, rowCount)
+	log.Printf("Discovered %v rows\n", rowCount)
 
-	return []Row{}
+	if err = pq.Read(&rows); err != nil {
+		Raise(err)
+	}
+	log.Printf("Memory contains %v objects\n", len(rows))
+
+	return rows
 }
 
 func writeToDynamo(dynamo *dynamodb.DynamoDB, rows []Row) {
-	log.Printf("Writing %v rows to Dynamo", len(rows))
+	log.Printf("Writing %v rows to Dynamo table %v", len(rows), tableName)
 
 	for _, row := range rows {
 		av, err := dynamodbattribute.MarshalMap(row)

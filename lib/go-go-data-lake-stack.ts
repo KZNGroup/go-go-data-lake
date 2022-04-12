@@ -20,7 +20,7 @@ export class GoGoDataLakeStack extends Stack {
 
     const database = new dynamo.Table(this, 'go-data-lake', {
       partitionKey: {
-        name: "day",
+        name: "Day",
         type: dynamo.AttributeType.NUMBER
       },
       encryption: dynamo.TableEncryption.AWS_MANAGED,
@@ -28,7 +28,6 @@ export class GoGoDataLakeStack extends Stack {
       writeCapacity: 1,
     });
 
-    /*
     const convertLambda = new GoLambda(this, 'convert-lambda', {
       sourceFolder: path.join(__dirname, '../src/convert'),
       memorySize: 256,
@@ -38,7 +37,6 @@ export class GoGoDataLakeStack extends Stack {
     bucket.grantRead(convertLambda, 'landing/*');
     bucket.grantWrite(convertLambda, 'curated/*');
 
-    /*
     bucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
       new s3n.LambdaDestination(convertLambda),
@@ -47,7 +45,6 @@ export class GoGoDataLakeStack extends Stack {
         suffix="*.csv",
     ),
     );
-    */
 
     const dynamoLambda = new GoLambda(this, 'dynamo-lambda', {
       sourceFolder: path.join(__dirname, '../src/dynamo'),
@@ -58,7 +55,9 @@ export class GoGoDataLakeStack extends Stack {
       }
     });
 
-    /*
+    bucket.grantRead(dynamoLambda, 'curated/*');
+    database.grantWriteData(dynamoLambda);
+
     bucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
       new s3n.LambdaDestination(dynamoLambda),
@@ -67,6 +66,5 @@ export class GoGoDataLakeStack extends Stack {
         suffix="*.parquet",
     ),
     );
-    */
   }
 }

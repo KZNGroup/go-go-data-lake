@@ -18,22 +18,17 @@ export interface GoLambdaProps {
 
 export class GoLambda extends lambda.Function {
 	constructor(scope: Construct, id: string, props: GoLambdaProps) {
-		// To package a Go lambda with CDK, certain props have to be set exactly right
-		
-		// Ensure the minimum env variables are set
-		if (props.environment == null) {
-			props.environment = {}
-		}
-		props.environment.GOOS = OS;
-		props.environment.GOARCH = ARCH;
-		props.environment.CGO_ENABLED = '0';
-				
 		// Create the Go lambda
 		const allProps = {
 			code: lambda.Code.fromAsset(props.sourceFolder, {
 				bundling: {
 					image: lambda.Runtime.GO_1_X.bundlingImage,
-					environment: props.environment,
+					// Seperate env variables for the bundling container
+					environment: {
+						GOOS: OS,
+						GOARCH: ARCH,
+						CGO_ENABLED: '0',
+					},
 					user: "root",
 					command: [
 						'bash', '-c', [
@@ -51,6 +46,7 @@ export class GoLambda extends lambda.Function {
 			layers: props.layers,
 			timeout: props.timeout,
 			role: props.role,
+			environment: props.environment,
 		};
 		
 		super(scope, id, allProps);
