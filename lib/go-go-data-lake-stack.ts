@@ -26,8 +26,9 @@ export class GoGoDataLakeStack extends Stack {
       encryption: dynamo.TableEncryption.AWS_MANAGED,
       readCapacity: 1,
       writeCapacity: 1,
-    })
+    });
 
+    /*
     const convertLambda = new GoLambda(this, 'convert-lambda', {
       sourceFolder: path.join(__dirname, '../src/convert'),
       memorySize: 256,
@@ -42,18 +43,30 @@ export class GoGoDataLakeStack extends Stack {
       s3.EventType.OBJECT_CREATED,
       new s3n.LambdaDestination(convertLambda),
       s3.NotificationKeyFilter(
-        prefix="the/place",
-        suffix="*.mp3",
+        prefix="landing/",
+        suffix="*.csv",
     ),
     );
     */
 
-    /*
     const dynamoLambda = new GoLambda(this, 'dynamo-lambda', {
       sourceFolder: path.join(__dirname, '../src/dynamo'),
       memorySize: 256,
-      timeout: Duration.minutes(1)
+      timeout: Duration.minutes(1),
+      environment: {
+        TABLE_NAME: database.tableName
+      }
     });
+
+    /*
+    bucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3n.LambdaDestination(dynamoLambda),
+      s3.NotificationKeyFilter(
+        prefix="curated/",
+        suffix="*.parquet",
+    ),
+    );
     */
   }
 }
