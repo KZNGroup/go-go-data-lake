@@ -22,12 +22,6 @@ cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohl
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/aiden-sobey/parquet-go v1.6.4 h1:tMrC5LWM/UVwtGxo7+7Z1TXZhzHlvEJIUsdhfONjzP8=
-github.com/aiden-sobey/parquet-go v1.6.4/go.mod h1:Zip6ggZk10pK0uO2WcogkNRIUHzMgag8jKCWstBG+2Y=
-github.com/aiden-sobey/parquet-go v1.6.5 h1:/EkfHmG4zcJI83kuz/I5et3mRcUhIjZy1e4tRThNdks=
-github.com/aiden-sobey/parquet-go v1.6.5/go.mod h1:Zip6ggZk10pK0uO2WcogkNRIUHzMgag8jKCWstBG+2Y=
-github.com/aiden-sobey/parquet-go v1.6.6 h1:tQPWyKVir7xleywe1o+JwjzULA02BLySFc68UTlo2yY=
-github.com/aiden-sobey/parquet-go v1.6.6/go.mod h1:Zip6ggZk10pK0uO2WcogkNRIUHzMgag8jKCWstBG+2Y=
 github.com/apache/arrow/go/arrow v0.0.0-20200730104253-651201b0f516 h1:byKBBF2CKWBjjA4J1ZL2JXttJULvWSl50LegTyRZ728=
 github.com/apache/arrow/go/arrow v0.0.0-20200730104253-651201b0f516/go.mod h1:QNYViu/X0HXDHw7m3KXzWSVXIbfUvJqBFe6Gj8/pYA0=
 github.com/apache/thrift v0.0.0-20181112125854-24918abba929/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
