@@ -5,6 +5,7 @@ Go was not used for the CDK component as, at the time of writing, it has not imp
 ## Behaviour
 
 This POC ingests a CSV file detailing Russian equipment losses in the current Russia-Ukraine conflict. When the file is uploaded to the `Landing` zone it is converted to Parquet and written to `Curated`, then a second Lambda picks it up and writes all rows to a DynamoDB table. All of this is just to test the ability and maturity of Go for cloud-native data wrangling, we are not doing any fancy or meaningful data science here.
+Our test data set has been included in the `data/` folder so you can replicate this Data Lake in your own environment.
 
 ## Shoulders of Giants
 
