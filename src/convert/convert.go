@@ -33,32 +33,19 @@ type Upload struct {
 	key       string
 }
 
-/*
 type Row struct {
-	Name string `parquet:"name=name, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN"`
-	Age  int32  `parquet:"name=age, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-}
-*/
-
-/*
-type Row struct {
-	day           int32 `parquet:"name=day, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	aircraft      int32 `parquet:"name=aircraft, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	helicopter    int32 `parquet:"name=helicopter, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	tank          int32 `parquet:"name=tank, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	apc           int32 `parquet:"name=apc, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	artillery     int32 `parquet:"name=artillery, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	mrl           int32 `parquet:"name=mrl, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	military_auto int32 `parquet:"name=military_auto, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	fuel_tank     int32 `parquet:"name=fuel_tank, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	drone         int32 `parquet:"name=drone, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	ship          int32 `parquet:"name=ship, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-	anti_aircraft int32 `parquet:"name=anti_aircraft, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
-}
-*/
-
-type Row struct {
-	day int32 `parquet:"name=day, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Day           int32 `parquet:"name=day, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Aircraft      int32 `parquet:"name=aircraft, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Helicopter    int32 `parquet:"name=helicopter, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Tank          int32 `parquet:"name=tank, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Apc           int32 `parquet:"name=apc, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Artillery     int32 `parquet:"name=artillery, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Mrl           int32 `parquet:"name=mrl, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Military_auto int32 `parquet:"name=military_auto, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Fuel_tank     int32 `parquet:"name=fuel_tank, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Drone         int32 `parquet:"name=drone, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Ship          int32 `parquet:"name=ship, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
+	Anti_aircraft int32 `parquet:"name=anti_aircraft, type=INT32, convertedtype=INT_32, encoding=PLAIN"`
 }
 
 var awsSession *session.Session = helper.BuildSession(region)
@@ -204,25 +191,18 @@ func csv2parquet(localPath string) string {
 		fmt.Printf("Value parsed: %v.", value)
 
 		row := Row{
-			/*
-				Name: line[0],
-				Age:  helper.ParseInt32(line[1]),
-			*/
-			/*
-				day:           helper.ParseInt32(line[0]),
-				aircraft:      helper.ParseInt32(line[1]),
-				helicopter:    helper.ParseInt32(line[2]),
-				tank:          helper.ParseInt32(line[3]),
-				apc:           helper.ParseInt32(line[4]),
-				artillery:     helper.ParseInt32(line[5]),
-				mrl:           helper.ParseInt32(line[6]),
-				military_auto: helper.ParseInt32(line[7]),
-				fuel_tank:     helper.ParseInt32(line[8]),
-				drone:         helper.ParseInt32(line[9]),
-				ship:          helper.ParseInt32(line[10]),
-				anti_aircraft: helper.ParseInt32(line[11]),
-			*/
-			day: value,
+			Day:           helper.ParseInt32(line[0]),
+			Aircraft:      helper.ParseInt32(line[1]),
+			Helicopter:    helper.ParseInt32(line[2]),
+			Tank:          helper.ParseInt32(line[3]),
+			Apc:           helper.ParseInt32(line[4]),
+			Artillery:     helper.ParseInt32(line[5]),
+			Mrl:           helper.ParseInt32(line[6]),
+			Military_auto: helper.ParseInt32(line[7]),
+			Fuel_tank:     helper.ParseInt32(line[8]),
+			Drone:         helper.ParseInt32(line[9]),
+			Ship:          helper.ParseInt32(line[10]),
+			Anti_aircraft: helper.ParseInt32(line[11]),
 		}
 		err = writer.Write(row)
 		if err != nil {
